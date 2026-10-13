@@ -1,0 +1,17 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+
+# Python
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+local.settings.json
+
+# Node
+node_modules/
+dist/
+.env
