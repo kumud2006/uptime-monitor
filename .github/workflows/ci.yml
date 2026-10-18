@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        working-directory: functions
+        run: pip install -r requirements.txt pytest ruff
+      - name: Lint
+        working-directory: functions
+        run: ruff check .
+      - name: Test
+        working-directory: functions
+        run: pytest -q
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        if: hashFiles('frontend/package.json') != ''
+        with:
+          node-version: "20"
+      - name: Install and build
+        if: hashFiles('frontend/package.json') != ''
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+  terraform:
+    name: Terraform validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Format check
+        working-directory: infra
+        run: terraform fmt -check -recursive
+      - name: Init (no backend)
+        working-directory: infra
+        run: terraform init -backend=false
+      - name: Validate
+        working-directory: infra
+        run: terraform validate
