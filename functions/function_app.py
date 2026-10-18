@@ -3,12 +3,14 @@ import logging
 
 import azure.functions as func
 
+logger = logging.getLogger(__name__)
+
 app = func.FunctionApp()
 
 
 @app.timer_trigger(schedule="0 */5 * * * *", arg_name="timer", run_on_startup=False)
 def health_check(timer: func.TimerRequest) -> None:
-    logging.info("placeholder timer fired")
+    logger.info("placeholder timer fired")
 
 
 @app.route(route="ping", auth_level=func.AuthLevel.ANONYMOUS)
