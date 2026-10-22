@@ -1,14 +1,14 @@
-
 import { useState } from "react";
 
-function AddTargetForm({ onAdd, mockMode = true }) {
+function AddTargetForm({ onAdd, mockMode = false }) {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     setMessage("");
     setError("");
@@ -42,29 +42,27 @@ function AddTargetForm({ onAdd, mockMode = true }) {
       return;
     }
 
-    if (!mockMode) {
-      setError(
-        "Live website creation is disabled until the backend is confirmed ready."
+    setBusy(true);
+    try {
+      await onAdd({
+        name: trimmedName || parsedUrl.hostname,
+        url: parsedUrl.href,
+        email: trimmedEmail,
+      });
+
+      setName("");
+      setUrl("");
+      setEmail("");
+      setMessage(
+        mockMode
+          ? "Website added to the demo data!"
+          : "Website added. The first check has run."
       );
-      return;
+    } catch (err) {
+      setError(err.message || "Could not add the website.");
+    } finally {
+      setBusy(false);
     }
-
-    onAdd?.({
-      id: `mock-${Date.now()}`,
-      name: trimmedName || parsedUrl.hostname,
-      url: parsedUrl.href,
-      email: trimmedEmail,
-      ok: true,
-      status_code: 200,
-      latency_ms: 120,
-      uptime_24h: 100,
-      last_checked: new Date().toISOString(),
-    });
-
-    setName("");
-    setUrl("");
-    setEmail("");
-    setMessage("Website added to the demo data!");
   }
 
   return (
@@ -75,7 +73,7 @@ function AddTargetForm({ onAdd, mockMode = true }) {
           <p>Enter a website to include in your monitoring dashboard.</p>
         </div>
 
-        <span className="mock-label">Demo mode</span>
+        {mockMode && <span className="mock-label">Demo mode</span>}
       </div>
 
       <form className="add-target-form" onSubmit={handleSubmit}>
@@ -114,13 +112,15 @@ function AddTargetForm({ onAdd, mockMode = true }) {
         {error && <p className="form-error">{error}</p>}
         {message && <p className="form-success">{message}</p>}
 
-        <button type="submit" className="primary-button">
-          Add website
+        <button type="submit" className="primary-button" disabled={busy}>
+          {busy ? "Adding…" : "Add website"}
         </button>
       </form>
 
       <p className="form-note">
-        Demo mode: websites are added locally and no real email alerts are sent.
+        {mockMode
+          ? "Demo mode: websites are added locally and no real email alerts are sent."
+          : "Websites are saved to the cloud database and checked every 5 minutes. Alerts go to the email above."}
       </p>
     </div>
   );
