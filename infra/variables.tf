@@ -28,3 +28,14 @@ variable "cosmos_location" {
   type    = string
   default = "koreacentral"
 }
+
+variable "smtp_user" {
+  type    = string
+  default = ""
+}
+
+variable "smtp_password" {
+  type      = string
+  default   = ""
+  sensitive = true
+}

@@ -177,6 +177,10 @@ resource "azurerm_function_app_flex_consumption" "main" {
     DB_CONNECTION       = azurerm_cosmosdb_account.main.primary_sql_connection_string
     DB_NAME             = azurerm_cosmosdb_sql_database.main.name
     ALERT_EMAIL         = var.alert_email
+    SMTP_HOST           = "smtp.gmail.com"
+    SMTP_PORT           = "587"
+    SMTP_USER           = var.smtp_user
+    SMTP_PASSWORD       = var.smtp_password
   }
 }
 
