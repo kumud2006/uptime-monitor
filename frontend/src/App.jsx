@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import StatusTable from "./components/StatusTable";
 import HistoryChart from "./components/HistoryChart";
@@ -17,22 +16,30 @@ function App() {
   const [targets, setTargets] = useState([]);
   const [history, setHistory] = useState([]);
   const [incidents, setIncidents] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
   const [range, setRange] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [historyError, setHistoryError] = useState("");
+
+  // The chart shows one website at a time: the selected one, or the first one.
+  const activeId =
+    selectedId && targets.some((target) => target.id === selectedId)
+      ? selectedId
+      : targets[0]?.id ?? null;
 
   const refreshData = useCallback(async () => {
     try {
       setError("");
 
-      const [statusData, historyData, incidentData] = await Promise.all([
+      const [statusData, incidentData] = await Promise.all([
         getStatus(),
-        getHistory(),
         getIncidents(),
       ]);
 
-      setTargets(Array.isArray(statusData) ? statusData : statusData.targets ?? []);
-      setHistory(Array.isArray(historyData) ? historyData : historyData.history ?? []);
+      setTargets(
+        Array.isArray(statusData) ? statusData : statusData.targets ?? []
+      );
       setIncidents(
         Array.isArray(incidentData)
           ? incidentData
@@ -45,6 +52,16 @@ function App() {
     }
   }, []);
 
+  const refreshHistory = useCallback(async () => {
+    try {
+      setHistoryError("");
+      const data = await getHistory(activeId, range);
+      setHistory(Array.isArray(data) ? data : data.history ?? []);
+    } catch (err) {
+      setHistoryError(err.message || "Unable to load history.");
+    }
+  }, [activeId, range]);
+
   useEffect(() => {
     refreshData();
 
@@ -52,12 +69,26 @@ function App() {
     return () => clearInterval(interval);
   }, [refreshData]);
 
+  useEffect(() => {
+    refreshHistory();
+
+    const interval = setInterval(refreshHistory, 30000);
+    return () => clearInterval(interval);
+  }, [refreshHistory]);
+
+  function handleRefresh() {
+    refreshData();
+    refreshHistory();
+  }
+
+  // Throws on failure, so the form can show the real error message.
   async function handleAddTarget(target) {
-    try {
-      const addedTarget = await addTarget(target);
-      setTargets((current) => [addedTarget, ...current]);
-    } catch (err) {
-      setError(err.message || "Unable to add website.");
+    const added = await addTarget(target);
+
+    if (USE_MOCK) {
+      setTargets((current) => [added, ...current]);
+    } else {
+      await refreshData();
     }
   }
 
@@ -93,7 +124,7 @@ function App() {
           <span className={`mode-badge ${USE_MOCK ? "mock" : "live"}`}>
             {USE_MOCK ? "Demo mode" : "Live mode"}
           </span>
-          <button className="refresh-button" onClick={refreshData}>
+          <button className="refresh-button" onClick={handleRefresh}>
             ↻ Refresh
           </button>
         </div>
@@ -155,6 +186,21 @@ function App() {
           </div>
 
           <div className="range-controls" aria-label="Chart time range">
+            {!USE_MOCK && targets.length > 0 && (
+              <select
+                value={activeId ?? ""}
+                onChange={(event) => setSelectedId(event.target.value)}
+                aria-label="Website shown in the chart"
+                style={{ marginRight: 8, padding: "6px 10px", borderRadius: 8 }}
+              >
+                {targets.map((target) => (
+                  <option key={target.id} value={target.id}>
+                    {target.name || target.url}
+                  </option>
+                ))}
+              </select>
+            )}
+
             {[1, 6, 24].map((hours) => (
               <button
                 key={hours}
@@ -166,6 +212,12 @@ function App() {
             ))}
           </div>
         </div>
+
+        {historyError && (
+          <div className="error-banner" role="alert">
+            {historyError}
+          </div>
+        )}
 
         <HistoryChart history={filteredHistory} range={range} />
       </section>
