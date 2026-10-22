@@ -32,6 +32,7 @@ jobs:
         if: hashFiles('frontend/package.json') != ''
         working-directory: frontend
         env:
+          VITE_USE_MOCK: "false"
           VITE_API_URL: ${{ secrets.API_URL }}
         run: |
           npm ci

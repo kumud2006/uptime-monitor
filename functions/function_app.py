@@ -81,7 +81,7 @@ def get_incidents(req: func.HttpRequest) -> func.HttpResponse:
     return _json(store.list_incidents())
 
 
-@app.route(route="targets", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
+@app.route(route="targets", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
 def add_target(req: func.HttpRequest) -> func.HttpResponse:
     try:
         data = req.get_json()
